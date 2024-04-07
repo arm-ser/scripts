@@ -1,42 +1,38 @@
 #!/bin/bash
 
-# Update package index
-sudo apt update
-
-# Install packages to allow apt to use a repository over HTTPS
-sudo apt install -y \
+# Update the apt package index and install packages to allow apt to use a repository over HTTPS
+sudo apt-get update
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
     apt-transport-https \
     ca-certificates \
     curl \
-    gnupg \
+    software-properties-common \
     lsb-release
 
-# Add Docker's official GPG key
+# Remove the existing GPG key file to avoid the prompt
+sudo rm -f /usr/share/keyrings/docker-archive-keyring.gpg
+
+# Add Docker’s official GPG key
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 
-# Add Docker repository for Ubuntu 22.04
+# Set up the stable repository
 echo \
-  "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
   $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-# Update package index again to include Docker repository
-sudo apt update
+# Install Docker Engine
+sudo apt-get update
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y docker-ce docker-ce-cli containerd.io
 
-# Install Docker
-sudo apt install -y docker-ce docker-ce-cli containerd.io
-
-# Install Docker Compose
-sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-
-# Apply executable permissions to the Docker Compose binary
-sudo chmod +x /usr/local/bin/docker-compose
-
-# Add current user to the docker group
+# Add the current user to the Docker group (replace $USER with your username if necessary)
 sudo usermod -aG docker $USER
 
-# Activate the changes to groups
+# Install Docker Compose V2 plugin
+sudo mkdir -p /usr/local/lib/docker/cli-plugins
+sudo curl -SL https://github.com/docker/compose/releases/download/v2.5.0/docker-compose-linux-$(uname -m) -o /usr/local/lib/docker/cli-plugins>
+sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+# Activate changes to groups
 newgrp docker
 
-# Test Docker installation
-docker --version
-docker-compose --version
+echo "Docker and Docker Compose V2 have been installed successfully."
